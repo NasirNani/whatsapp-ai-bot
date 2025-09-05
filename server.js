@@ -370,8 +370,21 @@ client.on('qr', (qr) => {
   currentQR = qr;
   logger.info('QR Code generated for authentication');
   console.log('🔗 QR Code received. Scan with WhatsApp:');
+  console.log('QR Data:', qr.substring(0, 50) + '...'); // Log first 50 chars for debugging
   qrcode.generate(qr, { small: true });
   console.log(`🌐 Or visit: https://whatsapp-ai-bot-6u59.onrender.com/qr`);
+});
+
+client.on('loading_screen', (percent, message) => {
+  console.log('WhatsApp loading:', percent + '%', message);
+});
+
+client.on('authenticated', () => {
+  console.log('✅ WhatsApp authenticated!');
+});
+
+client.on('auth_failure', (msg) => {
+  console.error('❌ WhatsApp authentication failed:', msg);
 });
 
 client.on('ready', () => {
