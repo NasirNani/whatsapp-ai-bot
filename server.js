@@ -195,7 +195,10 @@ const client = new Client({
   // Additional client optimizations
   restartOnAuthFail: true,
   takeOverOnConflict: true,
-  bypassCSP: true
+  bypassCSP: true,
+  // Extended QR code timeout for easier scanning
+  qrTimeout: 600000, // 10 minutes (600,000 ms) instead of default 60 seconds
+  qrMaxRetries: 50
 });
 
 // Middleware
