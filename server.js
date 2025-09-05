@@ -362,11 +362,16 @@ async function handleAdminCommand(message, senderId) {
   }
 }
 
+// Store QR code for web display
+let currentQR = null;
+
 // WhatsApp client event handlers
 client.on('qr', (qr) => {
+  currentQR = qr;
   logger.info('QR Code generated for authentication');
   console.log('🔗 QR Code received. Scan with WhatsApp:');
   qrcode.generate(qr, { small: true });
+  console.log(`🌐 Or visit: https://whatsapp-ai-bot-6u59.onrender.com/qr`);
 });
 
 client.on('ready', () => {
@@ -506,6 +511,201 @@ app.get('/analytics', (req, res) => {
     } else {
       res.json(rows);
     }
+  });
+});
+
+// QR Code web page
+app.get('/qr', (req, res) => {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp AI Bot - QR Code</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .logo {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .qr-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #dee2e6;
+        }
+        .qr-placeholder {
+            font-size: 4em;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .waiting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .ready {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .instructions ol {
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 10px 0;
+            color: #555;
+        }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        .footer {
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+    <script>
+        let qrDisplayed = false;
+
+        async function checkQRStatus() {
+            try {
+                const response = await fetch('/qr-status');
+                const data = await response.json();
+
+                if (data.qr && !qrDisplayed) {
+                    displayQR(data.qr);
+                    qrDisplayed = true;
+                }
+
+                if (data.ready) {
+                    document.querySelector('.status').className = 'status ready';
+                    document.querySelector('.status').textContent = '✅ WhatsApp Connected! Bot is ready to receive messages.';
+                    document.querySelector('.qr-container').style.display = 'none';
+                }
+            } catch (error) {
+                console.log('Checking QR status...');
+            }
+        }
+
+        function displayQR(qrData) {
+            document.querySelector('.qr-placeholder').textContent = '📱';
+            document.querySelector('.qr-container').innerHTML = \`
+                <div style="font-family: monospace; white-space: pre; background: white; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; font-size: 12px; line-height: 1.2; overflow-x: auto;">\${qrData}</div>
+                <p style="margin-top: 15px; color: #28a745; font-weight: bold;">🔗 QR Code Ready! Scan with WhatsApp</p>
+            \`;
+        }
+
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        // Check QR status every 2 seconds
+        setInterval(checkQRStatus, 2000);
+        checkQRStatus(); // Initial check
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🤖</div>
+        <h1>WhatsApp AI Bot</h1>
+        <p class="subtitle">Scan the QR code to connect your WhatsApp</p>
+
+        <div class="status waiting">
+            🔄 Waiting for QR code...
+        </div>
+
+        <div class="qr-container">
+            <div class="qr-placeholder">⏳</div>
+            <p>QR code will appear here automatically</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📱 How to Connect:</h3>
+            <ol>
+                <li>Open WhatsApp on your phone</li>
+                <li>Go to <strong>Settings → Linked Devices</strong></li>
+                <li>Tap <strong>"Link a Device"</strong></li>
+                <li>Scan the QR code above</li>
+                <li>Your bot is connected! 🎉</li>
+            </ol>
+        </div>
+
+        <button class="refresh-btn" onclick="refreshPage()">🔄 Refresh Page</button>
+
+        <div class="footer">
+            <p>💡 <strong>Tip:</strong> The QR code is valid for 10 minutes</p>
+            <p>🔒 Your WhatsApp messages are processed securely</p>
+        </div>
+    </div>
+</body>
+</html>`;
+  res.send(html);
+});
+
+// QR status API
+app.get('/qr-status', (req, res) => {
+  res.json({
+    qr: currentQR,
+    ready: client.info ? true : false
   });
 });
 
